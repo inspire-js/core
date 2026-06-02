@@ -8,3 +8,6 @@ if (!Inspire?.loaded) {
 }
 
 export default Inspire;
+
+// The (initially empty) plugin registry, for plugin packages to populate.
+export { registry } from "./src/plugins.js";

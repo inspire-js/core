@@ -1,7 +1,0 @@
-[data-resolution] .slide,
-.slide[data-resolution] {
-	width: calc(var(--v-width) * 1px);
-	height: calc(var(--v-height) * 1px);
-	box-sizing: border-box;
-	margin: auto;
-}

@@ -14,9 +14,10 @@ const documentTitle = document.title + "";
 let _ = {
 	loaded: util.defer(),
 
-	// Plugin ids and selectors
-	// If selector matches anything, plugin is loaded
+	// Plugin machinery (loader + registry). Core ships the registry empty;
+	// plugin packages (e.g. @inspirejs/plugins) write their entries into it.
 	plugins,
+	loadPlugin: plugins.load,
 
 	// Inspire will not initialize until any promises pushed here are resolved
 	// This is useful for plugins to delay initialization until they've fetched stuff
@@ -43,6 +44,9 @@ let _ = {
 
 		await this.loadImports();
 
+		// Load every plugin whose selector matches. The registry is populated by
+		// plugin packages imported alongside the core (synchronously, at import time),
+		// so by now — after the await above — it reflects this deck's plugins.
 		this.dependencies = plugins.loadAll();
 
 		this.domSetup();
@@ -50,7 +54,7 @@ let _ = {
 		await Promise.allSettled(this.dependencies);
 
 		let loaded = Object.keys(plugins.loaded);
-		console.info("Inspire.js plugins loaded:", loaded.length? loaded.join(", ") : "none");
+		console.info("Inspire.js plugins loaded:", loaded.length ? loaded.join(", ") : "none");
 
 		this.ready.resolve();
 

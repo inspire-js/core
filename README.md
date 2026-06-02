@@ -2,75 +2,46 @@
 
 ### Lean, hackable, extensible slide deck framework. Create basic slides by just writing HTML and CSS, do fancy custom stuff with JS, the sky is the limit!
 
+This repo is the **core engine** (`@inspirejs/core`). Inspire.js is split across a few packages:
+
+| Package | What it is |
+|---|---|
+| [`@inspirejs/core`](https://github.com/inspire-js/core) | this repo — the core engine + `inspire.css` |
+| [`@inspirejs/plugins`](https://github.com/inspire-js/plugins) | optional plugins, autoloaded on demand |
+| [`inspirejs.org`](https://github.com/inspire-js/inspire.js) | meta package: bundles core + plugins in one install |
+| [demo / theme](https://github.com/inspire-js/demo) | the [inspirejs.org](https://inspirejs.org) site + the default theme |
+
 ## Getting started
 
-### CDN
-
-```html
-<script src="https://inspirejs.org/inspire.js"></script>
-```
-
-or
-
-```js
-import Inspire from "https://inspirejs.org/inspire.mjs";
-```
-
-### NPM
-
 ```sh
-npm install inspirejs.org
+npm install @inspirejs/core
 ```
 
-then
-
+`@inspirejs/core` is native ESM and imports its dependencies by bare specifier (e.g. `@inspirejs/core`). Resolve those however your project already does — an [import map](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/script/type/importmap), a bundler, or a no-build tool. Then include the stylesheet and import the engine:
 
 ```html
-<script src="node_modules/inspirejs.org/inspire.js"></script>
+<link href="/path/to/@inspirejs/core/inspire.css" rel="stylesheet" />
+
+<script type="module">
+	import "@inspirejs/core"; // initializes automatically
+</script>
 ```
 
-or
+That’s it. Slides are any elements with `class="slide"` — no JS needed to create them. `import Inspire from "@inspirejs/core"` gives you the API (also the global `Inspire`).
+
+### Plugins (optional)
+
+You don’t need plugins to use Inspire.js. Extra functionality (syntax highlighting, presenter view, live demos, …) lives in the separate [`@inspirejs/plugins`](https://github.com/inspire-js/plugins) package, which autoloads on demand — just add a second import:
 
 ```js
-import Inspire from "node_modules/inspirejs.org/inspire.mjs";
+import "@inspirejs/plugins";
 ```
 
-or if you use a bundler:
+Or install [`inspirejs.org`](https://github.com/inspire-js/inspire.js), which bundles core + plugins.
 
-```js
-import Inspire from "inspirejs.org";
-```
+### Legacy URLs
 
-
-### Quick start
-
-- Copy (and rename) blank.html somewhere
-- Also copy talk.css, theme.css
-- Add Your Own Content
-- Add talk-specific styling to talk.css
-
-## Previously known as CSSS.
-
-If you were using CSSS and would rather stay at it, run `git checkout v1.0.0` and stay there.
-
-<details>
-
-<summary>Migrating from CSSS</summary>
-
-- Almost all HTML syntax is the same! The same JS events are still fired. So, very little should break.
-- `slideshow.css` is now `inspire.css`
-- `slideshow.js` is now `inspire.js`
-- You don't need to run JS to create a slideshow, it is created automatically.
-- The `SlideShow` JS class is now `Inspire`
-- The `slideshow` JS variable is now `Inspire`
-- Presenter view will not be loaded unless there is at least one `class="presenter-notes"` item.
-- The CSS Controls plugin is now gone. Use [Mavo](https://mavo.io) if you need this functionality.
-- The CSS Snippets plugin is now gone. We will soon add a much better one, extracted based on the live demo script in https://github.com/leaverou/talks.
-- Incrementable is no longer a plugin. Use the separate script from https://github.com/leaverou/incrementable.
-- `reusable.css` has now been merged into the default theme, `theme.css`.
-- `data-import` is now `data-insert`
-
-</details>
+Old absolute URLs like `https://inspirejs.org/inspire.mjs`, `/inspire.css`, and `/plugins/…` still resolve, but **migrate off them as soon as possible.** They only redirect to the new packages to soften breakage; because the underlying files have been reorganized, they are unlikely to keep working correctly. Depend on the npm packages instead.
 
 ## API FAQ
 

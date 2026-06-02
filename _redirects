@@ -1,3 +1,0 @@
-
-# Catch all NPM fallback
-node_modules/:modulename/* https://cdn.jsdelivr.net/npm/:modulename@latest/:splat 200

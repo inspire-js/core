@@ -1,7 +1,7 @@
 // For compatibility. File that can be imported without type="module" and creates a global
 console.warn('Inspire.js has switched to ESM. Please use type="module" in your <script> element and import the .mjs file of the same name.');
 
-let url = new URL("./inspire.mjs", document.currentScript ? document.currentScript.src : "https://inspire.js.org/");
+let url = new URL("./inspire.mjs", document.currentScript ? document.currentScript.src : "https://inspirejs.org/");
 
 window.inspireLoaded = import(url).then(module => window.Inspire = module.default);
 

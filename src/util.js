@@ -1,4 +1,4 @@
-import Hooks from "../node_modules/blissful-hooks/src/Hooks.js";
+import Hooks from "blissful-hooks";
 
 export function defer (source) {
 	let res, rej;

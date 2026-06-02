@@ -1,2 +1,8 @@
 # Local Netlify folder
 .netlify
+
+# Dependencies / generated
+node_modules
+client_modules
+importmap.js
+.nudeps

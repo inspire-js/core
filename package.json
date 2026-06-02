@@ -1,7 +1,7 @@
 {
-  "name": "inspirejs.org",
-  "version": "2.1.1",
-  "description": "Lean, hackable, extensible slide deck framework",
+  "name": "@inspirejs/core",
+  "version": "3.0.0",
+  "description": "Lean, hackable, extensible slide deck framework — core engine",
   "main": "inspire.mjs",
   "exports": {
     ".": "./inspire.mjs",
@@ -9,15 +9,7 @@
       "style": "./inspire.css",
       "default": "./inspire.css"
     },
-    "./theme.css": {
-      "style": "./theme.css",
-      "default": "./theme.css"
-    },
-    "./style/*": {
-      "style": "./style/*",
-      "default": "./style/*"
-    },
-    "./plugins/*": "./plugins/*/plugin.js"
+    "./util": "./src/util.js"
   },
   "scripts": {
     "build": "echo \"No build process! 🤟🏼\" && exit 0",
@@ -27,7 +19,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/LeaVerou/inspire.js.git"
+    "url": "git+https://github.com/inspire-js/core.git"
   },
   "keywords": [
     "slides"
@@ -45,7 +37,7 @@
   ],
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/LeaVerou/inspire.js/issues"
+    "url": "https://github.com/inspire-js/core/issues"
   },
   "homepage": "https://inspirejs.org",
   "dependencies": {

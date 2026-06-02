@@ -1,19 +1,26 @@
-import registry from "./plugin-autoload.js";
-import * as util from "./util.js"
+import * as util from "./util.js";
 
-export {registry};
+/**
+ * Plugin registry. Core ships it empty; plugin packages (e.g. @inspirejs/plugins)
+ * import it and write their entries in. Each entry is:
+ *   id -> { test: selector, base: URL the plugin's files resolve against }
+ * Carrying `base` per entry lets plugins live anywhere — including separate repos.
+ */
+export const registry = {};
 
 export let loaded = {};
 
 export const TIMEOUT = 4000;
 
-export function load (id, def = {}) {
+// Load a single plugin by id. `def` defaults to its registry entry.
+// Plugin files (plugin.js / plugin.css) are resolved against `def.base`.
+export function load (id, def = registry[id]) {
 	if (loaded[id]) {
 		return loaded[id];
 	}
 
-	let path = def.path || "../plugins";
-	let pluginURL = new URL(`${path}/${id}/plugin.js`, import.meta.url);
+	let base = def.base ?? import.meta.url;
+	let pluginURL = new URL(`${id}/plugin.js`, base);
 	let noCSS = document.querySelector(`.no-css-${id}, .no-${id}-css, .${id}-no-css`);
 
 	let plugin = loaded[id] = {};
@@ -21,7 +28,7 @@ export function load (id, def = {}) {
 	plugin.loadedJS = import(pluginURL).then(module => plugin.module = module);
 	plugin.loaded = plugin.loadedJS.then(module => {
 		if (!noCSS && module.hasCSS) {
-			let pluginCSS = new URL(`${path}/${id}/plugin.css`, import.meta.url);
+			let pluginCSS = new URL(`${id}/plugin.css`, base);
 			plugin.loading = pluginCSS;
 			let link = util.create.in(document.head, `<link rel="stylesheet" href="${pluginCSS}">`);
 			return new Promise((res, rej) => {
@@ -42,19 +49,19 @@ export function load (id, def = {}) {
 	return plugin;
 }
 
+// Load every registered plugin whose selector matches the current document.
 export function loadAll (plugins = registry) {
 	let ret = [];
 
 	for (let id in plugins) {
 		let def = plugins[id];
-		let test = def.test || def;
+		let test = def.test ?? def;
 
 		let doLoad = document.querySelector(test) || document.body.matches(`[data-load-plugins~="${id}"]`);
 		let dontLoad = document.body.matches(`.no-${id}, .no-plugins`);
 
 		if (doLoad && !dontLoad) {
-			let plugin = load(id, def);
-			// plugin.loaded.then(_ => ret.push(plugin));
+			let plugin = load(id, typeof def === "string" ? { test: def } : def);
 			plugin.loaded.catch(e => console.error(`Plugin ${id} error:`, e));
 			setTimeout(_ => plugin.loaded.reject("Timed out"), TIMEOUT);
 			ret.push(plugin.loaded);
@@ -64,9 +71,18 @@ export function loadAll (plugins = registry) {
 	return ret;
 }
 
-export function register (plugins) {
+// Add plugins to the registry at runtime and load any that match now.
+// `base` is applied to entries that don't carry their own.
+export function register (plugins, base) {
 	for (let id in plugins) {
-		registry[id] = plugins[id];
+		let def = plugins[id];
+		def = typeof def === "string" ? { test: def } : { ...def };
+
+		if (base && !def.base) {
+			def.base = base;
+		}
+
+		registry[id] = def;
 	}
 
 	loadAll(plugins);
