@@ -1,3 +1,4 @@
-# Project / dev files
-.claude
-.nudeps
+.editorconfig
+.prettierrc
+.prettierignore
+.vscode/
