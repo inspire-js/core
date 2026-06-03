@@ -44,6 +44,6 @@
     "blissful-hooks": "^0.0"
   },
   "devDependencies": {
-    "release-it": "^20.0.1"
+    "release-it": "^20.2.0"
   }
 }
