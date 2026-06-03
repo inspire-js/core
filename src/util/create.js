@@ -10,11 +10,14 @@ let positions = {
 		let newElement = create.before(element, html);
 		newElement.append(element);
 		return newElement;
-	}
-}
+	},
+};
 
 const CORE_SETTINGS = new Set([
-	"element", "position", "contents", "html",
+	"element",
+	"position",
+	"contents",
+	"html",
 	...Object.keys(positions),
 ]);
 

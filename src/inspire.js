@@ -1,11 +1,13 @@
 import * as plugins from "./plugins.js";
 import * as util from "./util.js";
-import * as imports from "./imports.js"
+import * as imports from "./imports.js";
 
-const { $, $$, bind, Hooks, create, } = util;
+const { $, $$, bind, Hooks, create } = util;
 
 if ($(".additive-steps")) {
-	console.warn(".additive-steps is not used anymore. Simply use data-step-all instead of data-step for additive steps.");
+	console.warn(
+		".additive-steps is not used anymore. Simply use data-step-all instead of data-step for additive steps.",
+	);
 }
 
 // Cache <title> element, we may need it for slides that don"t have titles
@@ -37,7 +39,7 @@ let _ = {
 
 	hooks: new Hooks(),
 
-	async setup() {
+	async setup () {
 		this.loaded.resolve(true);
 
 		$$(this.ignore).forEach(el => el.remove());
@@ -64,7 +66,7 @@ let _ = {
 
 	domSetup () {
 		// Make all external links open in a new window
-		$$('a[href^="http"]:not([target])').forEach(a => a.target = "_blank");
+		$$('a[href^="http"]:not([target])').forEach(a => (a.target = "_blank"));
 
 		// Set <html> attributes from query string
 		const url = new URL(location);
@@ -79,7 +81,7 @@ let _ = {
 		}
 	},
 
-	init() {
+	init () {
 		// Current slide
 		_.index = 0;
 
@@ -95,29 +97,34 @@ let _ = {
 		_.indicator = create.in(document.body, `<div id=indicator></div>`);
 
 		// Add on screen navigation
-		let onscreen = create.in(document.body, `<div id=onscreen-nav class="hidden">
+		let onscreen = create.in(
+			document.body,
+			`<div id=onscreen-nav class="hidden">
 			<button class="onscreen-nav prev" type=button>◂</button>
 			<button class="onscreen-nav next" type=button>Next ▸</button>
-		</div>`);
+		</div>`,
+		);
 
 		onscreen.children[0].addEventListener("click", evt => _.previous());
 		onscreen.children[1].addEventListener("click", evt => _.next());
 
 		// Get the slide elements into an array
-		_.slides = $$(`.slide:not(${ _.ignoreSlides })`, document.body);
+		_.slides = $$(`.slide:not(${_.ignoreSlides})`, document.body);
 		document.documentElement.style.setProperty("--total-slides", _.slides.length);
 
 		// Order of the slides
 		_.order = [];
 
 		if (!_.slides.length) {
-			console.warn('[Inspire.js] There are no slides! Add some elements with class="slide" to create a presentation.')
+			console.warn(
+				'[Inspire.js] There are no slides! Add some elements with class="slide" to create a presentation.',
+			);
 			return;
 		}
 
 		let slideContainers = new Set();
 
-		for (let i=0; i<_.slides.length; i++) {
+		for (let i = 0; i < _.slides.length; i++) {
 			let slide = _.slides[i];
 
 			for (let ancestor = slide; (ancestor = ancestor.parentNode); ) {
@@ -144,8 +151,9 @@ let _ = {
 
 				if (!title && slide.id) {
 					// Still no title, but it has an id, try from that
-					title = slide.id.replace(/-(\w)/g, ($0, $1) => " " + $1.toUpperCase())
-					                .replace(/^./, a => a.toUpperCase());
+					title = slide.id
+						.replace(/-(\w)/g, ($0, $1) => " " + $1.toUpperCase())
+						.replace(/^./, a => a.toUpperCase());
 				}
 			}
 
@@ -154,9 +162,11 @@ let _ = {
 
 				if (!slide.id) {
 					// If a slide has a title but not an id, get its id from that
-					let id = title.replace(/[^\w\s-]/g, "") // Remove non-ASCII characters
-							.trim().replace(/\s+/g, "-") // Convert whitespace to hyphens
-							.toLowerCase();
+					let id = title
+						.replace(/[^\w\s-]/g, "") // Remove non-ASCII characters
+						.trim()
+						.replace(/\s+/g, "-") // Convert whitespace to hyphens
+						.toLowerCase();
 
 					if (/\d/.test(id)) {
 						// Make sure it doesn't start with a number
@@ -173,12 +183,12 @@ let _ = {
 			}
 			else {
 				// Asign ids to slides that don"t have one
-				slide.id = "slide" + (i+1);
+				slide.id = "slide" + (i + 1);
 			}
 
 			slide.setAttribute("data-index", i);
 			let imp = slide.getAttribute("data-insert"),
-				imported = imp? _.getSlideById(imp) : null;
+				imported = imp ? _.getSlideById(imp) : null;
 
 			if (imp && !imported) {
 				// data-insert to slide that does not exist, remove slide
@@ -189,7 +199,7 @@ let _ = {
 				continue;
 			}
 
-			_.order.push(imported? +imported.getAttribute("data-index") : i);
+			_.order.push(imported ? +imported.getAttribute("data-index") : i);
 
 			// [data-steps] can be used to define steps (applied through the data-step
 			// property), used in CSS to go through multiple states for an element
@@ -205,7 +215,7 @@ let _ = {
 				element.removeAttribute("data-step");
 				element.dummies = [];
 
-				for (let i=0; i<steps; i++) {
+				for (let i = 0; i < steps; i++) {
 					let dummy = create({
 						html: `<span class="delayed dummy" style="display: none" data-for-step="${i + 1}"></span>`,
 						element,
@@ -215,7 +225,8 @@ let _ = {
 					element.dummies.push(dummy);
 				}
 			}
-		} // end slide loop
+		}
+		// end slide loop
 
 		slideContainers.delete(document.body);
 		slideContainers.delete(document.documentElement);
@@ -237,16 +248,16 @@ let _ = {
 				Ctrl+G : Go to slide...
 				(Shift instead of Ctrl works too)
 			*/
-			"keyup": evt => {
+			keyup: evt => {
 				if (!document.activeElement.matches(_.editableElements)) {
 					let letter = evt.key.toUpperCase();
 
 					if (letter === "G" && (evt.ctrlKey || evt.shiftKey) && !evt.altKey) {
 						let slide = prompt("Which slide?");
-						_.goto(+slide? slide - 1 : slide);
+						_.goto(+slide ? slide - 1 : slide);
 					}
 					else {
-						_.hooks.run("keyup", {evt, letter, context: this});
+						_.hooks.run("keyup", { evt, letter, context: this });
 					}
 				}
 			},
@@ -260,8 +271,12 @@ let _ = {
 				Ctrl + Down/Left arrow : Previous slide
 				(Shift instead of Ctrl works too)
 			*/
-			"keydown": evt => {
-				if (evt.altKey || evt.target.contains(_.currentSlide) || !evt.target.matches(_.editableElements)) {
+			keydown: evt => {
+				if (
+					evt.altKey ||
+					evt.target.contains(_.currentSlide) ||
+					!evt.target.matches(_.editableElements)
+				) {
 					if (evt.keyCode >= 32 && evt.keyCode <= 40) {
 						evt.preventDefault();
 					}
@@ -290,7 +305,7 @@ let _ = {
 							break;
 					}
 				}
-			}
+			},
 		});
 
 		_.hooks.run("init-end", this);
@@ -300,15 +315,15 @@ let _ = {
 		return this;
 	},
 
-	hashchange(evt) {
+	hashchange (evt) {
 		_.goto(location.hash.substr(1) || 0);
 	},
 
-	start() {
+	start () {
 		_.goto(0);
 	},
 
-	end() {
+	end () {
 		_.goto(_.slides.length - 1);
 	},
 
@@ -330,10 +345,10 @@ let _ = {
 		}
 	},
 
-	nextItem() {
+	nextItem () {
 		this.delayedLast = this.currentSlide.matches(".delayed-last, .delayed-last *");
 
-		if (_.item < _.items.length || this.delayedLast && _.item === _.items.length) {
+		if (_.item < _.items.length || (this.delayedLast && _.item === _.items.length)) {
 			_.gotoItem(++_.item);
 		}
 		else {
@@ -366,7 +381,7 @@ let _ = {
 		}
 	},
 
-	previousItem() {
+	previousItem () {
 		_.gotoItem(--_.item);
 	},
 
@@ -374,7 +389,7 @@ let _ = {
 		Go to an aribtary slide
 		@param which {Element|String|Integer} Which slide (identifier or slide number)
 	*/
-	goto: function(which) {
+	goto: function (which) {
 		let slide;
 		let prev = _.slide;
 
@@ -387,7 +402,7 @@ let _ = {
 		if (isWhichAnId) {
 			// Argument is a slide id
 			let id = which;
-			which = $(which[0] === "#"? which : "#" + which);
+			which = $(which[0] === "#" ? which : "#" + which);
 
 			// Id is of the form #slide42, just find that slide by number
 			if (!which && /^slide(\d+)$/.test(id)) {
@@ -424,7 +439,8 @@ let _ = {
 			location.hash = "#" + slide.id;
 		}
 
-		if (prev !== _.slide) { // Slide actually changed, perform any other tasks needed
+		if (prev !== _.slide) {
+			// Slide actually changed, perform any other tasks needed
 			document.title = slide.getAttribute("data-title") || documentTitle;
 
 			let prevSlide = _.slides[prev];
@@ -434,7 +450,7 @@ let _ = {
 			// Which revisit is this?
 			let revisit = 0;
 
-			for (let i = 0; i<_.index; i++) {
+			for (let i = 0; i < _.index; i++) {
 				if (_.order[i] === _.slide) {
 					revisit++;
 				}
@@ -442,7 +458,7 @@ let _ = {
 
 			slide.dataset.visit = revisit + 1;
 
-			let env = {slide, prevSlide, firstTime, which, context: this};
+			let env = { slide, prevSlide, firstTime, which, context: this };
 			_.hooks.run("slidechange", env);
 
 			localStorage.Inspire_currentSlide = _.index;
@@ -452,13 +468,18 @@ let _ = {
 
 			// Adjust color-scheme of Inspire chrome
 			document.documentElement.style.setProperty("color-scheme", "");
-			document.documentElement.style.setProperty("color-scheme", getComputedStyle(slide).getPropertyValue("color-scheme"));
+			document.documentElement.style.setProperty(
+				"color-scheme",
+				getComputedStyle(slide).getPropertyValue("color-scheme"),
+			);
 
 			// Show or hide onscreen navigation
 			$("#onscreen-nav").classList.toggle("hidden", !slide.matches(".onscreen-nav"));
 
 			// Update the slide number
-			_.indicator.textContent = env.slide.classList.contains("no-slide-number")? "" : _.index + 1;
+			_.indicator.textContent = env.slide.classList.contains("no-slide-number")
+				? ""
+				: _.index + 1;
 
 			// Are there any autoplay videos?
 			processAutoplayVideos(env.slide);
@@ -499,8 +520,8 @@ let _ = {
 
 			// Run the slidechange event and hook
 			requestAnimationFrame(() => {
-				let evt = new Event("slidechange", {"bubbles": true});
-				Object.assign(evt, {prevSlide, firstTime});
+				let evt = new Event("slidechange", { bubbles: true });
+				Object.assign(evt, { prevSlide, firstTime });
 				slide.dispatchEvent(evt);
 
 				_.hooks.run("slidechange-async", env);
@@ -529,7 +550,7 @@ let _ = {
 
 		return new Promise(resolve => {
 			let callback = evt => {
-				if (ref === evt.target || typeof ref === "string" && evt.target.matches(ref)) {
+				if (ref === evt.target || (typeof ref === "string" && evt.target.matches(ref))) {
 					resolve(evt.target);
 					evt.target.removeEventListener("slidechange", callback);
 				}
@@ -546,7 +567,7 @@ let _ = {
 	 * @returns {HTMLElement[]} The slides that contain elements matching the selector
 	 */
 	for (selector, callback) {
-		let slides = $$(`.slide:has(${ selector})`);
+		let slides = $$(`.slide:has(${selector})`);
 
 		for (let slide of slides) {
 			_.on(slide).then(slide => {
@@ -595,7 +616,7 @@ let _ = {
 
 		let index = which - 1;
 
-		for (let i=0; i<_.items.length; i++) {
+		for (let i = 0; i < _.items.length; i++) {
 			let item = _.items[i];
 			let [future, current, displayed] = [i > index, i === index, i < index];
 			item.classList.toggle("future", future);
@@ -605,7 +626,7 @@ let _ = {
 			let stepElement = item.classList.contains("dummy") && item.dummyFor;
 
 			if (current) {
-				item.dispatchEvent(new Event("itemcurrent", {bubbles: true}));
+				item.dispatchEvent(new Event("itemcurrent", { bubbles: true }));
 
 				// Are there any autoplay videos?
 				processAutoplayVideos(item);
@@ -616,13 +637,15 @@ let _ = {
 					if (j.contains(cur)) {
 						j.classList.remove("displayed", "future");
 						j.classList.add("current");
-						j.dispatchEvent(new Event("itemcurrent", {bubbles: true}));
+						j.dispatchEvent(new Event("itemcurrent", { bubbles: true }));
 					}
 				}
 			}
 
 			// Update item index
-			let done = _.items.length - _.items.filter(item => item.matches(":not(.current, .displayed)")).length;
+			let done =
+				_.items.length -
+				_.items.filter(item => item.matches(":not(.current, .displayed)")).length;
 			document.documentElement.style.setProperty("--items-done", done);
 
 			// Deal with data-steps
@@ -634,11 +657,13 @@ let _ = {
 				}
 				else {
 					// Maybe some other item is current?
-					let current = stepElement.dummies.find(dummy => dummy.classList.contains("current"));
+					let current = stepElement.dummies.find(dummy =>
+						dummy.classList.contains("current"));
 					if (!current) {
 						// All dummies displayed = past all steps, preserve max step
 						// All dummies future = before any step, reset to 0
-						let allDisplayed = stepElement.dummies.every(dummy => dummy.classList.contains("displayed"));
+						let allDisplayed = stepElement.dummies.every(dummy =>
+							dummy.classList.contains("displayed"));
 						step = allDisplayed ? stepElement.dummies.length : 0;
 					}
 					// We don’t need to deal with the current dummy, it will be dealt with when its turn comes
@@ -646,7 +671,13 @@ let _ = {
 
 				if (step > 0) {
 					stepElement.setAttribute("data-step", step);
-					stepElement.setAttribute("data-step-all", Array(step + 1).fill().map((_, i) => i).join(" "));
+					stepElement.setAttribute(
+						"data-step-all",
+						Array(step + 1)
+							.fill()
+							.map((_, i) => i)
+							.join(" "),
+					);
 				}
 				else if (step === 0) {
 					stepElement.removeAttribute("data-step");
@@ -655,10 +686,10 @@ let _ = {
 			}
 		}
 
-		_.hooks.run("gotoitem-end", {which, context: this});
+		_.hooks.run("gotoitem-end", { which, context: this });
 	},
 
-	adjustFontSize() {
+	adjustFontSize () {
 		let slide = _.currentSlide;
 
 		if (!slide || document.body.matches(".show-thumbnails") || slide.matches(".dont-resize")) {
@@ -667,7 +698,12 @@ let _ = {
 
 		let cs = getComputedStyle(slide);
 
-		if (cs.getPropertyValue("--dont-resize") || cs.getPropertyValue("--font-sizing")?.trim() === "fixed" || cs.overflow === "hidden" || cs.overflow === "clip") {
+		if (
+			cs.getPropertyValue("--dont-resize") ||
+			cs.getPropertyValue("--font-sizing")?.trim() === "fixed" ||
+			cs.overflow === "hidden" ||
+			cs.overflow === "clip"
+		) {
 			return;
 		}
 
@@ -678,17 +714,21 @@ let _ = {
 		}
 
 		let size = parseInt(getComputedStyle(slide).fontSize);
-		let prev = {scrollHeight: slide.scrollHeight, scrollWidth: slide.scrollWidth};
+		let prev = { scrollHeight: slide.scrollHeight, scrollWidth: slide.scrollWidth };
 		let limit = 0;
 
 		for (
 			let factor = size / parseInt(getComputedStyle(document.body).fontSize);
 			(slide.scrollHeight > innerHeight || slide.scrollWidth > innerWidth) && factor >= 1;
-			factor -= .1
+			factor -= 0.1
 		) {
 			slide.style.fontSize = factor * 100 + "%";
 
-			if (prev && prev.scrollHeight <= slide.scrollHeight && prev.scrollWidth <= slide.scrollWidth) {
+			if (
+				prev &&
+				prev.scrollHeight <= slide.scrollHeight &&
+				prev.scrollWidth <= slide.scrollWidth
+			) {
 				// Reducing font-size is having no effect, abort mission after a few more tries
 				if (++limit > 5) {
 					break;
@@ -702,23 +742,23 @@ let _ = {
 	},
 
 	// Get current slide as an element
-	get currentSlide() {
+	get currentSlide () {
 		return _.slides?.[_.slide];
 	},
 
-	getSlideById(id) {
-		id = id[0] === "#"? id : "#" + id;
+	getSlideById (id) {
+		id = id[0] === "#" ? id : "#" + id;
 		return $(".slide" + id);
 	},
 
 	// Get the slide an element belongs to
-	getSlide(element) {
+	getSlide (element) {
 		return element.closest(".slide");
 	},
 
 	// Plugins can call this to signify to other plugins that the DOM changed
 	domchanged: element => {
-		let evt = new Event("inspire-domchanged", {bubbles: true});
+		let evt = new Event("inspire-domchanged", { bubbles: true });
 		element.dispatchEvent(evt);
 	},
 };
@@ -745,9 +785,13 @@ function processAutoplayVideos (root) {
 
 		if (video.paused) {
 			video.play().catch(() => {
-				video.addEventListener("click", evt => {
-					video.play();
-				}, {once: true});
+				video.addEventListener(
+					"click",
+					evt => {
+						video.play();
+					},
+					{ once: true },
+				);
 			});
 		}
 	}

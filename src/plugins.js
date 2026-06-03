@@ -23,9 +23,9 @@ export function load (id, def = registry[id]) {
 	let pluginURL = new URL(`${id}/plugin.js`, base);
 	let noCSS = document.querySelector(`.no-css-${id}, .no-${id}-css, .${id}-no-css`);
 
-	let plugin = loaded[id] = {};
+	let plugin = (loaded[id] = {});
 	plugin.loading = pluginURL;
-	plugin.loadedJS = import(pluginURL).then(module => plugin.module = module);
+	plugin.loadedJS = import(pluginURL).then(module => (plugin.module = module));
 	plugin.loaded = plugin.loadedJS.then(module => {
 		if (!noCSS && module.hasCSS) {
 			let pluginCSS = new URL(`${id}/plugin.css`, base);
@@ -57,7 +57,8 @@ export function loadAll (plugins = registry) {
 		let def = plugins[id];
 		let test = def.test ?? def;
 
-		let doLoad = document.querySelector(test) || document.body.matches(`[data-load-plugins~="${id}"]`);
+		let doLoad =
+			document.querySelector(test) || document.body.matches(`[data-load-plugins~="${id}"]`);
 		let dontLoad = document.body.matches(`.no-${id}, .no-plugins`);
 
 		if (doLoad && !dontLoad) {

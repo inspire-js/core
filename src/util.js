@@ -16,10 +16,9 @@ export function defer (source) {
 	return promise;
 }
 
-
-export function timeout (ms, {reject, value} = {}) {
+export function timeout (ms, { reject, value } = {}) {
 	return new Promise((res, rej) => {
-		let fn = reject? rej : res;
+		let fn = reject ? rej : res;
 		return ms > 0 ? setTimeout(_ => fn(value), ms) : requestAnimationFrame(fn);
 	});
 }
@@ -43,7 +42,7 @@ export async function importCJS (src) {
 }
 
 export function toArray (arr) {
-	return arr === undefined? [] : Array.isArray(arr)? arr : [arr];
+	return arr === undefined ? [] : Array.isArray(arr) ? arr : [arr];
 }
 
 export function deduplicateId (element) {
@@ -57,10 +56,12 @@ export function deduplicateId (element) {
 	}
 
 	let id = element.id.replace(/-\d+$/, ""); // avoid foo-1-1
-	let related = [...document.querySelectorAll(`[id^="${id}-"]`)].filter(e => e !== element && RegExp(`^${id}-\\d+$`).test(e.id));
-	let relatedIds = new Set(related.map(e => e.id))
+	let related = [...document.querySelectorAll(`[id^="${id}-"]`)].filter(
+		e => e !== element && RegExp(`^${id}-\\d+$`).test(e.id),
+	);
+	let relatedIds = new Set(related.map(e => e.id));
 
-	for (let i=2; ; i++) {
+	for (let i = 2; ; i++) {
 		let newId = `${id}-${i}`;
 
 		if (!relatedIds.has(newId)) {
