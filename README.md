@@ -39,6 +39,12 @@ import "@inspirejs/plugins";
 
 Or install [`inspirejs.org`](https://github.com/inspire-js/inspire.js), which bundles core + plugins.
 
+### Core plugins (built in)
+
+A few _fundamental_ features ship bundled with core as built-in plugins — modular internally, but always on, with nothing extra to install. Currently:
+
+- **`autosize`** — shrinks a slide's font-size to keep its content from overflowing the viewport. Opt out for the whole deck with `class="no-autosize"` (or `no-plugins`) on `<body>`, or per slide/subtree with `class="dont-resize"`, `--dont-resize`, `--font-sizing: fixed`, or `overflow: hidden | clip`.
+
 ### Legacy URLs
 
 Old absolute URLs like `https://inspirejs.org/inspire.mjs`, `/inspire.css`, and `/plugins/…` still resolve, but **migrate off them as soon as possible.** They only redirect to the new packages to soften breakage; because the underlying files have been reorganized, they are unlikely to keep working correctly. Depend on the npm packages instead.

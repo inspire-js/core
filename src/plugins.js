@@ -1,12 +1,16 @@
 import * as util from "./util.js";
 
 /**
- * Plugin registry. Core ships it empty; plugin packages (e.g. @inspirejs/plugins)
- * import it and write their entries in. Each entry is:
+ * Plugin registry. Each entry is:
  *   id -> { test: selector, base: URL the plugin's files resolve against }
  * Carrying `base` per entry lets plugins live anywhere — including separate repos.
+ * Core pre-registers its own bundled plugins below; plugin packages (e.g.
+ * @inspirejs/plugins) import the registry and write their entries in too.
  */
-export const registry = {};
+const builtinPlugins = new URL("./plugins/", import.meta.url);
+export const registry = {
+	autosize: { test: "*", base: builtinPlugins },
+};
 
 export let loaded = {};
 

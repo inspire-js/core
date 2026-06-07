@@ -46,9 +46,8 @@ let _ = {
 
 		await this.loadImports();
 
-		// Load every plugin whose selector matches. The registry is populated by
-		// plugin packages imported alongside the core (synchronously, at import time),
-		// so by now — after the await above — it reflects this deck's plugins.
+		// Load every plugin whose selector matches. The registry already holds core's
+		// own bundled plugins; plugin packages imported alongside the core add more
 		this.dependencies = plugins.loadAll();
 
 		this.domSetup();
@@ -241,8 +240,6 @@ let _ = {
 		_.goto(location.hash.substr(1) || 0);
 
 		bind(window, {
-			// Adjust the font-size when the window is resized
-			"load resize": evt => _.adjustFontSize(),
 			/**
 				Keyboard navigation
 				Ctrl+G : Go to slide...
@@ -462,9 +459,6 @@ let _ = {
 			_.hooks.run("slidechange", env);
 
 			localStorage.Inspire_currentSlide = _.index;
-
-			// Adjust font size to prevent scrolling
-			_.adjustFontSize();
 
 			// Adjust color-scheme of Inspire chrome
 			document.documentElement.style.setProperty("color-scheme", "");
@@ -687,58 +681,6 @@ let _ = {
 		}
 
 		_.hooks.run("gotoitem-end", { which, context: this });
-	},
-
-	adjustFontSize () {
-		let slide = _.currentSlide;
-
-		if (!slide || document.body.matches(".show-thumbnails") || slide.matches(".dont-resize")) {
-			return;
-		}
-
-		let cs = getComputedStyle(slide);
-
-		if (
-			cs.getPropertyValue("--dont-resize") ||
-			cs.getPropertyValue("--font-sizing")?.trim() === "fixed" ||
-			cs.overflow === "hidden" ||
-			cs.overflow === "clip"
-		) {
-			return;
-		}
-
-		slide.style.fontSize = "";
-
-		if (slide.scrollHeight <= innerHeight && slide.scrollWidth <= innerWidth) {
-			return;
-		}
-
-		let size = parseInt(getComputedStyle(slide).fontSize);
-		let prev = { scrollHeight: slide.scrollHeight, scrollWidth: slide.scrollWidth };
-		let limit = 0;
-
-		for (
-			let factor = size / parseInt(getComputedStyle(document.body).fontSize);
-			(slide.scrollHeight > innerHeight || slide.scrollWidth > innerWidth) && factor >= 1;
-			factor -= 0.1
-		) {
-			slide.style.fontSize = factor * 100 + "%";
-
-			if (
-				prev &&
-				prev.scrollHeight <= slide.scrollHeight &&
-				prev.scrollWidth <= slide.scrollWidth
-			) {
-				// Reducing font-size is having no effect, abort mission after a few more tries
-				if (++limit > 5) {
-					break;
-				}
-			}
-			else {
-				limit = 0;
-				prev = null;
-			}
-		}
 	},
 
 	// Get current slide as an element
