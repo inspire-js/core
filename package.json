@@ -1,6 +1,6 @@
 {
   "name": "@inspirejs/core",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Lean, hackable, extensible slide deck framework — core engine",
   "main": "inspire.mjs",
   "exports": {
