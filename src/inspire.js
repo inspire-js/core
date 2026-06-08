@@ -84,8 +84,12 @@ let _ = {
 		// Current slide
 		_.index = 0;
 
-		// Current .delayed item in the slide
+		// Current step (1-based) within the slide; 0 means no items revealed yet
 		_.item = 0;
+
+		// Total number of steps in the current slide (items sharing a
+		// data-index count as one step). Set by updateItems().
+		_.itemCount = 0;
 
 		// Slides that have been displayed at least once
 		_.displayed = new Set();
@@ -345,7 +349,7 @@ let _ = {
 	nextItem () {
 		this.delayedLast = this.currentSlide.matches(".delayed-last, .delayed-last *");
 
-		if (_.item < _.items.length || (this.delayedLast && _.item === _.items.length)) {
+		if (_.item < _.itemCount || (this.delayedLast && _.item === _.itemCount)) {
 			_.gotoItem(++_.item);
 		}
 		else {
@@ -362,18 +366,20 @@ let _ = {
 		else {
 			_.goto(_.index - 1);
 
-			_.item = _.items.length;
+			_.item = _.itemCount;
 
 			// Mark all items as displayed, if there are any
 			if (_.items.length) {
 				_.items.forEach(item => item.classList.add("displayed"));
 				_.items.forEach(item => item.classList.remove("future"));
 
-				// Mark the last one as current
-				let lastItem = _.items[_.items.length - 1];
-
-				lastItem.classList.remove("displayed");
-				lastItem.classList.add("current");
+				// Mark the last step’s items (there may be several) as current
+				for (let item of _.items) {
+					if (item.step === _.itemCount) {
+						item.classList.remove("displayed");
+						item.classList.add("current");
+					}
+				}
 			}
 		}
 	},
@@ -579,7 +585,22 @@ let _ = {
 		_.items = _.items.sort((a, b) => {
 			return (a.getAttribute("data-index") || 0) - (b.getAttribute("data-index") || 0);
 		});
-		document.documentElement.style.setProperty("--total-items", _.items.length);
+
+		// Assign each item a step number. Items that share the same explicit
+		// data-index belong to the same step and are revealed together; items
+		// without data-index each get their own step (sequential reveal).
+		_.itemCount = 0;
+		let previousIndex;
+		for (let item of _.items) {
+			let index = item.getAttribute("data-index");
+			if (index === null || index !== previousIndex) {
+				_.itemCount++;
+			}
+			item.step = _.itemCount;
+			previousIndex = index;
+		}
+
+		document.documentElement.style.setProperty("--total-items", _.itemCount);
 		document.documentElement.classList.toggle("has-items", _.items.length > 0);
 
 		if (_.items.length > 0) {
@@ -597,22 +618,30 @@ let _ = {
 	},
 
 	/**
-	 * Go to a specific item in the current slide
-	 * @param {number} which 1-based index of the item to go to (0 means no items are current, just the slide itself)
+	 * Go to a specific step in the current slide
+	 * @param {number} which 1-based step to go to (0 means no items are current, just the slide itself)
 	 */
 	gotoItem (which) {
 		_.item = which;
 
-		if (_.items.length > 0 && !_.items[which - 1]?.isConnected) {
+		if (_.items.length > 0 && !_.items[0]?.isConnected) {
 			// Items are floating in DOM hyperspace, re-fetch
 			_.updateItems();
 		}
 
-		let index = which - 1;
+		// Reflect progress: how many steps have been reached
+		document.documentElement.style.setProperty("--items-done", which);
 
 		for (let i = 0; i < _.items.length; i++) {
 			let item = _.items[i];
-			let [future, current, displayed] = [i > index, i === index, i < index];
+			// An item is current when its step is the one we’re on, displayed
+			// once we’ve passed it, and future until then. Items sharing a step
+			// (same data-index) are therefore revealed together.
+			let [future, current, displayed] = [
+				item.step > which,
+				item.step === which,
+				item.step < which,
+			];
 			item.classList.toggle("future", future);
 			item.classList.toggle("current", current);
 			item.classList.toggle("displayed", displayed);
@@ -625,22 +654,16 @@ let _ = {
 				// Are there any autoplay videos?
 				processAutoplayVideos(item);
 
-				// support for nested lists
-				for (let i = _.item - 1, cur = _.items[i], j; i > 0; i--) {
-					j = _.items[i - 1];
-					if (j.contains(cur)) {
-						j.classList.remove("displayed", "future");
-						j.classList.add("current");
-						j.dispatchEvent(new Event("itemcurrent", { bubbles: true }));
+				// support for nested lists: ancestor items stay current too
+				for (let j = i - 1; j >= 0; j--) {
+					let ancestor = _.items[j];
+					if (ancestor.contains(item)) {
+						ancestor.classList.remove("displayed", "future");
+						ancestor.classList.add("current");
+						ancestor.dispatchEvent(new Event("itemcurrent", { bubbles: true }));
 					}
 				}
 			}
-
-			// Update item index
-			let done =
-				_.items.length -
-				_.items.filter(item => item.matches(":not(.current, .displayed)")).length;
-			document.documentElement.style.setProperty("--items-done", done);
 
 			// Deal with data-steps
 			if (stepElement) {
