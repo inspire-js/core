@@ -4,12 +4,12 @@
 
 This repo is the **core engine** (`@inspirejs/core`). Inspire.js is split across a few packages:
 
-| Package | What it is |
-|---|---|
-| [`@inspirejs/core`](https://github.com/inspire-js/core) | this repo — the core engine + `inspire.css` |
-| [`@inspirejs/plugins`](https://github.com/inspire-js/plugins) | optional plugins, autoloaded on demand |
-| [`inspirejs.org`](https://github.com/inspire-js/inspire.js) | meta package: bundles core + plugins in one install |
-| [demo / theme](https://github.com/inspire-js/demo) | the [inspirejs.org](https://inspirejs.org) site + the default theme |
+| Package                                                       | What it is                                                          |
+| ------------------------------------------------------------- | ------------------------------------------------------------------- |
+| [`@inspirejs/core`](https://github.com/inspire-js/core)       | this repo — the core engine + `inspire.css`                         |
+| [`@inspirejs/plugins`](https://github.com/inspire-js/plugins) | optional plugins, autoloaded on demand                              |
+| [`inspirejs.org`](https://github.com/inspire-js/inspire.js)   | meta package: bundles core + plugins in one install                 |
+| [demo / theme](https://github.com/inspire-js/demo)            | the [inspirejs.org](https://inspirejs.org) site + the default theme |
 
 ## Getting started
 
@@ -48,6 +48,42 @@ A few _fundamental_ features ship bundled with core as built-in plugins — modu
 ### Legacy URLs
 
 Old absolute URLs like `https://inspirejs.org/inspire.mjs`, `/inspire.css`, and `/plugins/…` still resolve, but **migrate off them as soon as possible.** They only redirect to the new packages to soften breakage; because the underlying files have been reorganized, they are unlikely to keep working correctly. Depend on the npm packages instead.
+
+## Incremental display
+
+To reveal parts of a slide one step at a time, add `class="delayed"` to any element. Each delayed element appears on its own step as you advance, in source order:
+
+```html
+<ul>
+	<li class="delayed">First, then…</li>
+	<li class="delayed">second, then…</li>
+	<li class="delayed">third.</li>
+</ul>
+```
+
+Use `class="delayed-children"` on a container to make all of its direct children delayed, without annotating each one:
+
+```html
+<ul class="delayed-children">
+	<li>First</li>
+	<li>Second</li>
+	<li>Third</li>
+</ul>
+```
+
+### Controlling order and grouping with `data-index`
+
+By default, delayed items reveal in source order. Add `data-index` to override that order — items are revealed from lowest index to highest (items without `data-index` count as `0`, so they come first). The values only set _relative order_; gaps don't matter, so `data-index="2"` then `data-index="10"` is the same as `1` then `2`.
+
+Items that share the **same** `data-index` are revealed **together, in a single step**. This is handy for revealing a whole group at once — e.g. a table column:
+
+```html
+<tr><td>R</td><td>255</td><td class="delayed" data-index="1">0xFF</td></tr>
+<tr><td>G</td><td>0</td>  <td class="delayed" data-index="1">0x00</td></tr>
+<tr><td>B</td><td>140</td><td class="delayed" data-index="1">0x8C</td></tr>
+```
+
+All three `0x…` cells appear on the same step. Items _without_ `data-index` are never grouped — each still gets its own step.
 
 ## API FAQ
 
@@ -124,9 +160,13 @@ document.addEventListener("slidechange", evt => {
 or:
 
 ```js
-$("#slide-id").addEventListener("slidechange", evt => {
-	// Code to run
-}, {once: true});
+$("#slide-id").addEventListener(
+	"slidechange",
+	evt => {
+		// Code to run
+	},
+	{ once: true },
+);
 ```
 
 ### Running code after a specific slide has been displayed
