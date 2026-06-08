@@ -1,10 +1,16 @@
 import Inspire from "../../inspire.js";
 
+// Default floor: don't shrink a slide's content past this fraction of its
+// natural size. Override per slide with the `--min-font-scale` CSS variable.
+const MIN_FACTOR = 0.5;
+
 /**
- * Shrink the current slide's font-size in 10% steps until its content stops
- * overflowing the viewport. Bails out when the slide opts out (`.dont-resize`,
- * `--dont-resize`, `--font-sizing: fixed`, `overflow: hidden|clip`), during the
- * thumbnails overview, or when reducing the font-size stops having any effect.
+ * Shrink the current slide's font-size in 10% steps, down to a floor (default
+ * MIN_FACTOR, overridable per slide via `--min-font-scale`) of its natural size,
+ * until its content stops overflowing the viewport. Bails out when the slide opts
+ * out (`.dont-resize`, `--dont-resize`, `--font-sizing: fixed`, `overflow:
+ * hidden|clip`), during the thumbnails overview, or when reducing the font-size
+ * stops having any effect.
  */
 function adjustFontSize () {
 	let slide = Inspire.currentSlide;
@@ -30,16 +36,25 @@ function adjustFontSize () {
 		return;
 	}
 
-	let size = parseInt(getComputedStyle(slide).fontSize);
+	// Shrink from the slide's own natural size, in its own frame — no reference to
+	// body or parent font-size, so the percentage/parent mismatch can't skew it and
+	// it can go below the body's font-size when a slide needs it.
+	let natural = parseFloat(getComputedStyle(slide).fontSize);
 	let prev = { scrollHeight: slide.scrollHeight, scrollWidth: slide.scrollWidth };
 	let limit = 0;
 
+	// Per-slide floor via `--min-font-scale`, falling back to the default.
+	let minFactor = parseFloat(cs.getPropertyValue("--min-font-scale"));
+	if (!(minFactor > 0)) {
+		minFactor = MIN_FACTOR;
+	}
+
 	for (
-		let factor = size / parseInt(getComputedStyle(document.body).fontSize);
-		(slide.scrollHeight > innerHeight || slide.scrollWidth > innerWidth) && factor >= 1;
+		let factor = 1;
+		(slide.scrollHeight > innerHeight || slide.scrollWidth > innerWidth) && factor > minFactor;
 		factor -= 0.1
 	) {
-		slide.style.fontSize = factor * 100 + "%";
+		slide.style.fontSize = natural * factor + "px";
 
 		if (
 			prev &&
