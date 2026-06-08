@@ -34,7 +34,7 @@ export function load (id, def = registry[id]) {
 		if (!noCSS && module.hasCSS) {
 			let pluginCSS = new URL(`${id}/plugin.css`, base);
 			plugin.loading = pluginCSS;
-			let link = util.create.in(document.head, `<link rel="stylesheet" href="${pluginCSS}">`);
+			let link = util.create.in(document.head, `<link rel="stylesheet" href="${pluginCSS}" id="plugin-css-${id}">`);
 			return new Promise((res, rej) => {
 				link.onload = e => res(module);
 				link.onerror = rej;
