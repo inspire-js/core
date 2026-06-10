@@ -250,7 +250,7 @@ let _ = {
 				(Shift instead of Ctrl works too)
 			*/
 			keyup: evt => {
-				if (!evt.composedPath().some(el => el.matches?.(_.editableElements))) {
+				if (!evt.composedPath()[0].matches(_.editableElements)) {
 					let letter = evt.key.toUpperCase();
 
 					if (letter === "G" && (evt.ctrlKey || evt.shiftKey) && !evt.altKey) {
@@ -276,7 +276,7 @@ let _ = {
 				if (
 					evt.altKey ||
 					evt.target.contains(_.currentSlide) ||
-					!evt.composedPath().some(el => el.matches?.(_.editableElements))
+					!evt.composedPath()[0].matches(_.editableElements)
 				) {
 					if (evt.keyCode >= 32 && evt.keyCode <= 40) {
 						evt.preventDefault();
