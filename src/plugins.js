@@ -29,7 +29,9 @@ export function load (id, def = registry[id]) {
 
 	let plugin = (loaded[id] = {});
 	plugin.loading = pluginURL;
-	plugin.loadedJS = import(pluginURL).then(module => (plugin.module = module));
+	// Use the entry's own static `import()` loader when present, so import-map/bundler
+	// tooling can trace the plugin's dependencies; otherwise resolve the file by URL.
+	plugin.loadedJS = (def.load?.() ?? import(pluginURL)).then(module => (plugin.module = module));
 	plugin.loaded = plugin.loadedJS.then(module => {
 		if (!noCSS && module.hasCSS) {
 			let pluginCSS = new URL(`${id}/plugin.css`, base);
