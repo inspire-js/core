@@ -1,0 +1,12 @@
+/* Descendants of a [data-steps] element that are only shown during a range of its steps */
+[data-steps] :is([data-step], [data-min-step], [data-max-step]):not([data-steps]) {
+	opacity: 0;
+	transition-property: var(--transition-properties);
+	transition-duration: var(--transition-duration);
+	--step-active: 0;
+
+	&[data-step-state="current"] {
+		opacity: 1;
+		--step-active: 1;
+	}
+}
