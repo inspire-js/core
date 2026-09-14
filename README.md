@@ -126,7 +126,7 @@ Because a slide is left by rewinding it, a delayed `<style>` that must affect th
 
 ### Numbered steps: `data-steps`
 
-`data-steps="3"` gives an element three anonymous steps and reflects where you are as attributes: `data-step` (the current step, absent before the first) and `data-step-all` (every step reached, e.g. `"0 1 2"`, for cumulative styles via `[data-step-all~="1"]`). Descendants can declare when they show, relative to their closest stepped ancestor: `data-step="2"` (only during step 2), `data-min-step="2"` (from step 2 on), `data-max-step="2"` (until step 2). The `delayed:` classes above are usually the more readable option, since you name states instead of numbering them.
+`data-steps="3"` gives an element three anonymous steps and reflects where you are as attributes: `data-step` (the current step, absent before the first) and `data-step-all` (every step reached, e.g. `"0 1 2"`, for cumulative styles via `[data-step-all~="1"]`). Descendants can declare when they show, relative to their closest stepped ancestor: `data-step="2"` (only during step 2), `data-step-min="2"` (from step 2 on), `data-step-max="2"` (until step 2). The `delayed:` classes above are usually the more readable option, since you name states instead of numbering them.
 
 ### Reacting to steps from JS
 

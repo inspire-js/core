@@ -203,8 +203,7 @@ export function update (newSlide = slide) {
 
 	memory.set(slide, all);
 
-	document.documentElement.style.setProperty("--total-items", count);
-	document.documentElement.classList.toggle("has-items", all.length > 0);
+	reflect();
 
 	observer ??= new MutationObserver(refresh);
 	observer.observe(slide, {
@@ -213,6 +212,20 @@ export function update (newSlide = slide) {
 		attributes: true,
 		attributeFilter: ["class"],
 	});
+}
+
+// Progress of the current slide, for the indicator. Step 0 items are not navigable steps.
+function reflect () {
+	let style = document.documentElement.style;
+	document.documentElement.classList.toggle("has-items", count > 0);
+	style.setProperty("--total-items", count);
+
+	if (count > 0) {
+		style.setProperty("--items-done", which);
+	}
+	else {
+		style.removeProperty("--items-done");
+	}
 }
 
 function stateAt (item, which) {
@@ -259,6 +272,10 @@ function transition (stateOf) {
 		group.push(item);
 	}
 
+	// Mutations from before this transition still need a re-collection
+	let stale = observer?.takeRecords().length > 0;
+	let notify = [];
+
 	for (let [name, byElement] of groups) {
 		for (let [element, items] of byElement) {
 			let changed = items.filter(item => next.get(item) !== item.state);
@@ -266,6 +283,8 @@ function transition (stateOf) {
 			if (!changed.length) {
 				continue;
 			}
+
+			notify.push(...changed);
 
 			for (let item of items) {
 				item.state = next.get(item);
@@ -279,15 +298,18 @@ function transition (stateOf) {
 					console.error(`[Inspire] Item type "${name}" failed to apply:`, element, e);
 				}
 			}
-
-			for (let item of changed) {
-				element.dispatchEvent(new ItemChangeEvent(item));
-			}
 		}
 	}
 
-	// Our own class writes are not worth a re-collection, but anything a listener inserted is
-	if (observer?.takeRecords().some(record => record.type === "childList")) {
+	// Our own writes are class toggles, which surface as attribute records,
+	// so a childList record here is markup an apply() inserted and must be collected
+	let inserted = observer?.takeRecords().some(record => record.type === "childList");
+
+	for (let item of notify) {
+		item.element.dispatchEvent(new ItemChangeEvent(item));
+	}
+
+	if (stale || inserted || observer?.takeRecords().length) {
 		refresh();
 	}
 }
@@ -300,13 +322,7 @@ function transition (stateOf) {
  */
 export function goto (step, max = count) {
 	which = Math.max(0, Math.min(step, max));
-
-	if (all.length) {
-		document.documentElement.style.setProperty("--items-done", which);
-	}
-	else {
-		document.documentElement.style.removeProperty("--items-done");
-	}
+	reflect();
 
 	transition(item => stateAt(item, which));
 
@@ -317,7 +333,8 @@ export function goto (step, max = count) {
 export function refresh () {
 	if (slide) {
 		update();
-		goto(which);
+		// Re-collecting must not re-clamp: the current step may be past the last item (`.delayed-last`)
+		goto(which, Infinity);
 	}
 }
 
@@ -333,4 +350,5 @@ export function rewind () {
 	slide = null;
 	all = [];
 	count = 0;
+	reflect();
 }

@@ -6,7 +6,7 @@ export const hasCSS = true;
 /**
  * `data-steps="N"` gives an element N steps. The element gets `data-step` (the current
  * step, absent at 0) and `data-step-all` (every step reached, e.g. "0 1 2"). Descendants
- * with `data-step="N"`, `data-min-step="N"` or `data-max-step="N"` get
+ * with `data-step="N"`, `data-step-min="N"` or `data-step-max="N"` get
  * `data-step-state="future|current|past"` relative to their closest stepped ancestor.
  */
 Inspire.items.register({
@@ -26,7 +26,7 @@ Inspire.items.register({
 
 		element.dataset.stepAll = Array.from({ length: step + 1 }, (_, i) => i).join(" ");
 
-		for (let child of $$("[data-step], [data-min-step], [data-max-step]", element)) {
+		for (let child of $$("[data-step], [data-step-min], [data-step-max]", element)) {
 			if (
 				child.hasAttribute("data-steps") ||
 				child.parentElement.closest("[data-steps]") !== element
@@ -34,8 +34,8 @@ Inspire.items.register({
 				continue;
 			}
 
-			let min = child.dataset.minStep ?? child.dataset.step ?? 0;
-			let max = child.dataset.maxStep ?? child.dataset.step ?? Infinity;
+			let min = child.dataset.stepMin ?? child.dataset.step ?? 0;
+			let max = child.dataset.stepMax ?? child.dataset.step ?? Infinity;
 			child.dataset.stepState = step < min ? "future" : step > max ? "past" : "current";
 		}
 	},

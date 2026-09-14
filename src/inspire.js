@@ -447,7 +447,7 @@ let _ = {
 
 			// Collect items after the hook, since plugins may still be changing the DOM
 			items.update(slide);
-			_.gotoItem(Math.min(step ?? 0, items.count));
+			_.gotoItem(step ?? 0);
 
 			// Videos outside future items start playing
 			autoplay(slide);
