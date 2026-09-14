@@ -1,8 +1,11 @@
 import * as plugins from "./plugins.js";
 import * as util from "./util.js";
 import * as imports from "./imports.js";
+import * as items from "./items.js";
+// The delayed vocabulary is core functionality: not gated behind plugin loading
+import "./plugins/delayed/plugin.js";
 
-const { $, $$, bind, Hooks, create } = util;
+const { $, $$, bind, Hooks, create, autoplay } = util;
 
 if ($(".additive-steps")) {
 	console.warn(
@@ -38,6 +41,9 @@ let _ = {
 	loadImports: imports.load,
 
 	hooks: new Hooks(),
+
+	// Step items of the current slide, and the registry of item types (see items.js)
+	items,
 
 	async setup () {
 		this.loaded.resolve(true);
@@ -84,12 +90,8 @@ let _ = {
 		// Current slide
 		_.index = 0;
 
-		// Current step (1-based) within the slide; 0 means no items revealed yet
+		// Current step within the slide; 0 means no items reached yet
 		_.item = 0;
-
-		// Total number of steps in the current slide (items sharing a
-		// data-index count as one step). Set by updateItems().
-		_.itemCount = 0;
 
 		// Slides that have been displayed at least once
 		_.displayed = new Set();
@@ -189,7 +191,6 @@ let _ = {
 				slide.id = "slide" + (i + 1);
 			}
 
-			slide.setAttribute("data-index", i);
 			let imp = slide.getAttribute("data-insert"),
 				imported = imp ? _.getSlideById(imp) : null;
 
@@ -202,32 +203,7 @@ let _ = {
 				continue;
 			}
 
-			_.order.push(imported ? +imported.getAttribute("data-index") : i);
-
-			// [data-steps] can be used to define steps (applied through the data-step
-			// property), used in CSS to go through multiple states for an element
-			let stepped = $$("[data-steps]", slide);
-
-			if (slide.hasAttribute("data-steps")) {
-				stepped.push(slide);
-			}
-
-			for (let element of stepped) {
-				let steps = +element.getAttribute("data-steps");
-				element.setAttribute("data-step-all", "0");
-				element.removeAttribute("data-step");
-				element.dummies = [];
-
-				for (let i = 0; i < steps; i++) {
-					let dummy = create({
-						html: `<span class="delayed dummy" style="display: none" data-for-step="${i + 1}"></span>`,
-						element,
-						position: element === slide ? "in" : "before",
-						dummyFor: element,
-					});
-					element.dummies.push(dummy);
-				}
-			}
+			_.order.push(imported ? _.slides.indexOf(imported) : i);
 		}
 		// end slide loop
 
@@ -333,28 +309,20 @@ let _ = {
 			just the next step (which could very well be showing a list item)
 	 */
 	next (hard) {
-		if (!hard && _.items.length) {
+		if (!hard && items.count) {
 			_.nextItem();
 		}
 		else {
 			_.goto(_.index + 1);
-
-			_.item = 0;
-
-			// Mark all items as not displayed, if there are any
-			_.items.forEach(item => item.classList.remove("displayed", "current"));
 		}
 	},
 
 	nextItem () {
-		this.delayedLast = this.currentSlide.matches(".delayed-last, .delayed-last *");
-
-		if (_.item < _.itemCount || (this.delayedLast && _.item === _.itemCount)) {
-			_.gotoItem(++_.item);
+		if (_.item < _.lastItem) {
+			_.gotoItem(_.item + 1);
 		}
 		else {
 			// Finished all slide items, go to next slide
-			_.item = 0;
 			_.next(true);
 		}
 	},
@@ -364,35 +332,28 @@ let _ = {
 			_.previousItem();
 		}
 		else {
-			_.goto(_.index - 1);
-
-			_.item = _.itemCount;
-
-			// Mark all items as displayed, if there are any
-			if (_.items.length) {
-				_.items.forEach(item => item.classList.add("displayed"));
-				_.items.forEach(item => item.classList.remove("future"));
-
-				// Mark the last step’s items (there may be several) as current
-				for (let item of _.items) {
-					if (item.step === _.itemCount) {
-						item.classList.remove("displayed");
-						item.classList.add("current");
-					}
-				}
-			}
+			_.goto(_.index - 1, Infinity);
 		}
 	},
 
 	previousItem () {
-		_.gotoItem(--_.item);
+		_.gotoItem(_.item - 1);
+	},
+
+	// The last step of the current slide. `.delayed-last` grants one extra step past
+	// the last item, where every item is past and none is current.
+	get lastItem () {
+		let extra = _.currentSlide?.matches(".delayed-last, .delayed-last *") ? 1 : 0;
+		return items.count + extra;
 	},
 
 	/**
-		Go to an aribtary slide
-		@param which {Element|String|Integer} Which slide (identifier or slide number)
-	*/
-	goto: function (which) {
+	 * Go to an arbitrary slide
+	 * @param {Element | string | number} which Slide element, id, or number
+	 * @param {number} [step] Step to land on; defaults to 0 when the slide changes.
+	 *   Clamped to the slide's last step, so `Infinity` means "the end".
+	 */
+	goto (which, step) {
 		let slide;
 		let prev = _.slide;
 
@@ -430,7 +391,7 @@ let _ = {
 				location.hash = slide.id;
 			}
 
-			_.slide = _.index = +slide.getAttribute("data-index");
+			_.slide = _.index = _.slides.indexOf(slide);
 		}
 		else if (which + 0 === which && which in _.slides) {
 			// Argument is a valid slide number
@@ -461,6 +422,9 @@ let _ = {
 
 			slide.dataset.visit = revisit + 1;
 
+			// Leaving a slide rewinds it, so nothing it switched on leaks out
+			items.rewind();
+
 			let env = { slide, prevSlide, firstTime, which, context: this };
 			_.hooks.run("slidechange", env);
 
@@ -481,8 +445,12 @@ let _ = {
 				? ""
 				: _.index + 1;
 
-			// Are there any autoplay videos?
-			processAutoplayVideos(env.slide);
+			// Collect items after the hook, since plugins may still be changing the DOM
+			items.update(slide);
+			_.gotoItem(Math.min(step ?? 0, items.count));
+
+			// Videos outside future items start playing
+			autoplay(slide);
 
 			// Make videos without visible controls play/pause on click
 			for (let video of $$("video:not([controls])", env.slide)) {
@@ -495,10 +463,6 @@ let _ = {
 					}
 				});
 			}
-
-			// Update items collection
-			_.updateItems();
-			_.item = 0;
 
 			// Update next/previous
 			let previousPrevious = _.slides.previous;
@@ -526,6 +490,9 @@ let _ = {
 
 				_.hooks.run("slidechange-async", env);
 			});
+		}
+		else if (step !== undefined) {
+			_.gotoItem(step);
 		}
 
 		// If you attach the listener immediately again then it will catch the event
@@ -580,130 +547,21 @@ let _ = {
 		return slides;
 	},
 
+	// Re-collect the current slide's items after a DOM change
 	updateItems () {
-		_.items = $$(".delayed, .delayed-children > *", _.currentSlide);
-		_.items = _.items.sort((a, b) => {
-			return (a.getAttribute("data-index") || 0) - (b.getAttribute("data-index") || 0);
-		});
-
-		// Assign each item a step number. Items that share the same explicit
-		// data-index belong to the same step and are revealed together; items
-		// without data-index each get their own step (sequential reveal).
-		_.itemCount = 0;
-		let previousIndex;
-		for (let item of _.items) {
-			let index = item.getAttribute("data-index");
-			if (index === null || index !== previousIndex) {
-				_.itemCount++;
-			}
-			item.step = _.itemCount;
-			previousIndex = index;
-		}
-
-		document.documentElement.style.setProperty("--total-items", _.itemCount);
-		document.documentElement.classList.toggle("has-items", _.items.length > 0);
-
-		if (_.items.length > 0) {
-			document.documentElement.style.setProperty("--items-done", 0);
-		}
-		else {
-			document.documentElement.style.removeProperty("--items-done");
-		}
-
-		for (let element of _.items) {
-			if (!element.matches(".current, .displayed")) {
-				element.classList.add("future");
-			}
-		}
+		items.refresh();
 	},
 
 	/**
 	 * Go to a specific step in the current slide
-	 * @param {number} which 1-based step to go to (0 means no items are current, just the slide itself)
+	 * @param {number} which 0 means no items are current, just the slide itself.
+	 *   Clamped to the slide's last step.
+	 * @returns {number} The step actually gone to
 	 */
 	gotoItem (which) {
-		_.item = which;
-
-		if (_.items.length > 0 && !_.items[0]?.isConnected) {
-			// Items are floating in DOM hyperspace, re-fetch
-			_.updateItems();
-		}
-
-		// Reflect progress: how many steps have been reached
-		document.documentElement.style.setProperty("--items-done", which);
-
-		for (let i = 0; i < _.items.length; i++) {
-			let item = _.items[i];
-			// An item is current when its step is the one we’re on, displayed
-			// once we’ve passed it, and future until then. Items sharing a step
-			// (same data-index) are therefore revealed together.
-			let [future, current, displayed] = [
-				item.step > which,
-				item.step === which,
-				item.step < which,
-			];
-			item.classList.toggle("future", future);
-			item.classList.toggle("current", current);
-			item.classList.toggle("displayed", displayed);
-
-			let stepElement = item.classList.contains("dummy") && item.dummyFor;
-
-			if (current) {
-				item.dispatchEvent(new Event("itemcurrent", { bubbles: true }));
-
-				// Are there any autoplay videos?
-				processAutoplayVideos(item);
-
-				// support for nested lists: ancestor items stay current too
-				for (let j = i - 1; j >= 0; j--) {
-					let ancestor = _.items[j];
-					if (ancestor.contains(item)) {
-						ancestor.classList.remove("displayed", "future");
-						ancestor.classList.add("current");
-						ancestor.dispatchEvent(new Event("itemcurrent", { bubbles: true }));
-					}
-				}
-			}
-
-			// Deal with data-steps
-			if (stepElement) {
-				let step;
-
-				if (item.classList.contains("current")) {
-					step = +item.getAttribute("data-for-step");
-				}
-				else {
-					// Maybe some other item is current?
-					let current = stepElement.dummies.find(dummy =>
-						dummy.classList.contains("current"));
-					if (!current) {
-						// All dummies displayed = past all steps, preserve max step
-						// All dummies future = before any step, reset to 0
-						let allDisplayed = stepElement.dummies.every(dummy =>
-							dummy.classList.contains("displayed"));
-						step = allDisplayed ? stepElement.dummies.length : 0;
-					}
-					// We don’t need to deal with the current dummy, it will be dealt with when its turn comes
-				}
-
-				if (step > 0) {
-					stepElement.setAttribute("data-step", step);
-					stepElement.setAttribute(
-						"data-step-all",
-						Array(step + 1)
-							.fill()
-							.map((_, i) => i)
-							.join(" "),
-					);
-				}
-				else if (step === 0) {
-					stepElement.removeAttribute("data-step");
-					stepElement.setAttribute("data-step-all", "0");
-				}
-			}
-		}
-
-		_.hooks.run("gotoitem-end", { which, context: this });
+		_.item = items.goto(which, _.lastItem);
+		_.hooks.run("gotoitem-end", { which: _.item, context: this });
+		return _.item;
 	},
 
 	// Get current slide as an element
@@ -721,10 +579,14 @@ let _ = {
 		return element.closest(".slide");
 	},
 
-	// Plugins can call this to signify to other plugins that the DOM changed
-	domchanged: element => {
-		let evt = new Event("inspire-domchanged", { bubbles: true });
-		element.dispatchEvent(evt);
+	// Plugins call this after changing the DOM: items are re-collected and other
+	// plugins are notified via the `inspire-domchanged` event
+	domchanged (element) {
+		element.dispatchEvent(new Event("inspire-domchanged", { bubbles: true }));
+
+		if (items.slide?.contains(element)) {
+			items.refresh();
+		}
 	},
 };
 
@@ -732,33 +594,3 @@ _.util = {};
 Object.assign(_.util, util);
 
 export default _;
-
-function processAutoplayVideos (root) {
-	// Are there any autoplay videos?
-	let videos = root.matches("video[autoplay]") ? [root] : $$("video[autoplay]", root);
-	for (let video of videos) {
-		let delayed = video.closest(".delayed, .delayed-children > *");
-
-		if (delayed?.classList.contains("future")) {
-			// Video is in a future item, don't autoplay
-			continue;
-		}
-
-		if (video.currentTime > 0) {
-			video.currentTime = 0;
-		}
-
-		if (video.paused) {
-			video.play().catch(() => {
-				video.addEventListener(
-					"click",
-					evt => {
-						video.play();
-					},
-					{ once: true },
-				);
-			});
-		}
-	}
-	return videos;
-}

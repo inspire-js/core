@@ -96,3 +96,30 @@ export { default as inView } from "./util/inview.js";
 export { default as create } from "./util/create.js";
 
 export { Hooks };
+
+/**
+ * Play the autoplay videos in (or at) root, unless they are inside a future step.
+ * Videos that are not allowed to autoplay play on click instead.
+ * @param {Element} root
+ */
+export function autoplay (root) {
+	let videos = root.matches("video[autoplay]") ? [root] : $$("video[autoplay]", root);
+
+	for (let video of videos) {
+		if (video.closest(".future")) {
+			continue;
+		}
+
+		if (video.currentTime > 0) {
+			video.currentTime = 0;
+		}
+
+		if (video.paused) {
+			video.play().catch(() => {
+				video.addEventListener("click", () => video.play(), { once: true });
+			});
+		}
+	}
+
+	return videos;
+}

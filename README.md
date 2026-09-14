@@ -44,6 +44,7 @@ Or install [`inspirejs.org`](https://github.com/inspire-js/inspire.js), which bu
 A few _fundamental_ features ship bundled with core as built-in plugins — modular internally, but always on, with nothing extra to install. Currently:
 
 - **`autosize`** — shrinks a slide's font-size to keep its content from overflowing the viewport. Opt out for the whole deck with `class="no-autosize"` (or `no-plugins`) on `<body>`, or per slide/subtree with `class="dont-resize"`, `--dont-resize`, `--font-sizing: fixed`, or `overflow: hidden | clip`.
+- **`data-steps`** — numbered steps on an element, see [Incremental display](#numbered-steps-data-steps).
 
 ### Legacy URLs
 
@@ -71,6 +72,15 @@ Use `class="delayed-children"` on a container to make all of its direct children
 </ul>
 ```
 
+Every delayed element carries one of three classes at any time: `future` (its step hasn't come yet), `current` (its step is the one you're on) or `past` (you've moved past it). Style them however you like; `inspire.css` fades `future` out. A few modifiers are built in:
+
+| Modifier | Effect |
+| --- | --- |
+| `transient` (or `delayed-transient` on a container) | past items dim to 30% |
+| `collapse` (or `delayed-collapse`) | future items take no space |
+| `collapse-notcurrent` (or `delayed-collapse-notcurrent`) | only the current item takes space |
+| `delayed-last` on the slide | one extra step at the end where nothing is current |
+
 ### Controlling order and grouping with `data-index`
 
 By default, delayed items reveal in source order. Add `data-index` to override that order — items are revealed from lowest index to highest (items without `data-index` count as `0`, so they come first). The values only set _relative order_; gaps don't matter, so `data-index="2"` then `data-index="10"` is the same as `1` then `2`.
@@ -84,6 +94,70 @@ Items that share the **same** `data-index` are revealed **together, in a single 
 ```
 
 All three `0x…` cells appear on the same step. Items _without_ `data-index` are never grouped — each still gets its own step.
+
+`data-index="0"` is special: it means "with the slide". Such items are already past when the slide appears and are rewound when you leave it, which is mostly useful with the attributes below.
+
+### Delayed classes, attributes and scripts
+
+Revealing is only one thing a step can do. The same `delayed` word, as a prefix, folds anything else into the slide's flow:
+
+```html
+<!-- The slide gains `zoomed`, then `answered`, one step each. Nothing is hidden. -->
+<section class="slide delayed:zoomed delayed:answered">…</section>
+
+<!-- Attributes: <details> opens at its step; inline styles merge per property -->
+<details delayed:open>…</details>
+<p style="color: gray" delayed:style="color: red" delayed[2]:style="color: blue">…</p>
+
+<!-- Code runs when its step is reached, with `this` being the element -->
+<button delayed:script="this.click()">Play</button>
+```
+
+The grammar is `delayed(.modifier)*([index])?(:name)?`, the same for class tokens and attribute names:
+
+- `[index]` works like `data-index`: `delayed[2]:lit` shares a step with a `.delayed` item that has `data-index="2"`, and `delayed[0]:script` runs as soon as the slide appears.
+- `.transient` holds only while the step is current (`delayed.transient:glow`), instead of from the step on.
+- `.always` re-runs a script every time its step is reached; by default scripts run once per element.
+- Steps follow source order: attributes in the order they are written, and class tokens where the `class` attribute sits among them.
+- Setting the same attribute at two steps needs two distinct names, e.g. `delayed:style` and `delayed[1]:style`; the latest active one wins.
+- `delayed:script` with an empty value runs the element's text, for longer code: `<script type="text/plain" delayed:script>…</script>`. `class`, `id` and `data-index` cannot be delayed.
+
+Because a slide is left by rewinding it, a delayed `<style>` that must affect things outside the slide can be `<style media="not all" delayed[0]:media="all">`. Styles scoped to the slide need no help: `<style>@scope { … }</style>`.
+
+### Numbered steps: `data-steps`
+
+`data-steps="3"` gives an element three anonymous steps and reflects where you are as attributes: `data-step` (the current step, absent before the first) and `data-step-all` (every step reached, e.g. `"0 1 2"`, for cumulative styles via `[data-step-all~="1"]`). Descendants can declare when they show, relative to their closest stepped ancestor: `data-step="2"` (only during step 2), `data-min-step="2"` (from step 2 on), `data-max-step="2"` (until step 2). The `delayed:` classes above are usually the more readable option, since you name states instead of numbering them.
+
+### Reacting to steps from JS
+
+Every element whose item changes state gets a bubbling `itemchange` event, with `event.item`, `event.state` and `event.active`:
+
+```js
+slide.addEventListener("itemchange", evt => {
+	if (evt.state === "current") {
+		// evt.target just got its turn
+	}
+});
+```
+
+`Inspire.item` is the current step, `Inspire.gotoItem(n)` goes to one, `Inspire.items.all` lists the current slide's items and `Inspire.items.count` its step count. The `gotoitem-end` hook runs after every step change. DOM changes inside the current slide are picked up automatically (class changes and added/removed elements); after changing attributes from JS, call `Inspire.domchanged(element)`.
+
+### Defining your own step syntax
+
+All of the above are _item types_ registered through one API, and you can add your own:
+
+```js
+Inspire.items.register({
+	name: "pulse",
+	selector: "[data-pulse]",        // elements that get items (the slide too, if it matches)
+	items: element => [{}, {}],      // descriptors per element; default is one. `index`, `transient`, `key` are understood by core
+	apply (element, items, env) {    // called once per element whose items changed state
+		element.classList.toggle("pulsing", items.some(item => item.active));
+	},
+});
+```
+
+Each item has `element`, `index`, `step`, `state` (`future`, `current` or `past`) and `active` (past-or-current, or only current when `transient`). A type without a `selector` gets `items(slide)` called once and returns descriptors with their own `element`, for syntaxes no selector can find.
 
 ## API FAQ
 

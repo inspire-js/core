@@ -10,6 +10,7 @@ import * as util from "./util.js";
 const builtinPlugins = new URL("./plugins/", import.meta.url);
 export const registry = {
 	autosize: { test: "*", base: builtinPlugins },
+	"data-steps": { test: "[data-steps]", base: builtinPlugins },
 };
 
 export let loaded = {};
