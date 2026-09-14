@@ -17,7 +17,7 @@ const SELECTOR = ".delayed, .delayed-children > *, [class*='delayed']";
 const XPATH = 'descendant-or-self::*[@*[starts-with(name(), "delayed")]]';
 
 // Delaying these would change the items being parsed, or navigation itself
-const RESERVED = /^(class|id|data-index|delayed)/;
+const RESERVED = /^(?:class|id|data-index)$|^delayed/;
 
 // Attribute values before we touched them: element → name → value
 const originals = new WeakMap();
@@ -66,7 +66,7 @@ function compile (element, code) {
 			console.error("[Inspire] Cannot compile delayed:script", element, e);
 		}
 
-		map.set(code, { fn, ran: false, active: false });
+		map.set(code, { fn, ran: false, active: false, state: null });
 	}
 
 	return map.get(code);
@@ -222,17 +222,18 @@ function applyAttribute (element, name, group) {
 	}
 }
 
-// Runs on the edge where the item becomes active, once per element unless `.always`
+// Runs on the edge where the item becomes active, once per element unless `.always`,
+// which runs again every time the item's step becomes current
 function runScript (element, item) {
 	let entry = compile(element, item.code);
-
-	if (entry.active === item.active) {
-		return;
-	}
+	let run =
+		(item.active && !entry.active) ||
+		(item.always && item.state === "current" && entry.state !== "current");
 
 	entry.active = item.active;
+	entry.state = item.state;
 
-	if (!item.active || !entry.fn || (entry.ran && !item.always)) {
+	if (!run || !entry.fn || (entry.ran && !item.always)) {
 		return;
 	}
 
