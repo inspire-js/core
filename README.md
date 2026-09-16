@@ -39,6 +39,8 @@ import "@inspirejs/plugins";
 
 Or install [`inspirejs.org`](https://github.com/inspire-js/inspire.js), which bundles core + plugins.
 
+Inspire waits for plugins (and any promises in `Inspire.delayInit`) before initializing, but not forever: after `Inspire.initTimeout` (default 10 s) it initializes anyway and warns in the console about what it stopped waiting for. Set `Inspire.initTimeout` right after importing core to change the budget.
+
 ### Core plugins (built in)
 
 A few _fundamental_ features ship bundled with core as built-in plugins — modular internally, but always on, with nothing extra to install. Currently:
@@ -185,7 +187,9 @@ await Inspire.loadPlugin(PLUGIN_ID);
 // code to run after the plugin with id PLUGIN_ID has loaded and executed
 ```
 
-The second example would load the plugin if it hasn't otherwise been loaded, but if it will never be loaded twice.
+The second example would load the plugin if it hasn't otherwise been loaded, but it will never be loaded twice.
+
+These promises reject if the plugin fails to load. A plugin that stalls (e.g. a remote dependency that never responds) keeps them pending; `initTimeout` only stops the slideshow from waiting, it does not settle them.
 
 ### Running code when a specific slide is displayed
 

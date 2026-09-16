@@ -8,7 +8,12 @@
 
 ### Changed
 
+- Plugin loading no longer times out per plugin after 4 s. Instead, `setup()` waits up to `Inspire.initTimeout` (default 10 s, configurable) for all plugins _and_ `delayInit` promises together, then initializes anyway and warns about whatever was still pending. `Inspire.plugins.loaded[id].loaded` now reflects the real load: it rejects on failure and stays pending on a stall, rather than being rejected with `"Timed out"`.
 - `.previous` and `.next` slides are treated like every other slide that is not on screen: their contents are skipped with `content-visibility` where the slide carries `hidden="until-found"`, and they stay rendered-but-invisible (`visibility: hidden`) where it is missing, so that decks in browsers without support keep showing them. Deck CSS that shows them anyway needs `content-visibility: visible; clip-path: none; pointer-events: auto; visibility: visible` (see [plugins#12](https://github.com/inspire-js/plugins/pull/12), which does this for the presenter view's next-slide preview).
+
+### Removed
+
+- `plugin.loading`, `plugin.done` and `plugins.TIMEOUT`, which only served the old per-plugin timeout.
 
 ## 3.1.0
 

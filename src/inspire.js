@@ -28,6 +28,11 @@ let _ = {
 	// This is useful for plugins to delay initialization until they've fetched stuff
 	delayInit: [],
 
+	// How long setup() waits for plugins and delayInit before initializing anyway.
+	// A plugin's remote dependency can stall indefinitely rather than fail, and a
+	// slideshow that never starts is worse than one missing a plugin.
+	initTimeout: 10_000,
+
 	// Elements to ignore (works with nesting too)
 	// This works better than commenting, which cannot be
 	ignore: ".inspire-remove, .inspire-comment",
@@ -58,14 +63,35 @@ let _ = {
 
 		this.domSetup();
 
-		await Promise.allSettled(this.dependencies);
+		// One deadline shared by both waits, so init() happens within initTimeout of here
+		let deadline = util.wait(this.initTimeout);
+
+		let pending = await util.settle(this.dependencies, deadline);
 
 		let loaded = Object.keys(plugins.loaded);
 		console.info("Inspire.js plugins loaded:", loaded.length ? loaded.join(", ") : "none");
 
 		this.ready.resolve();
 
-		await Promise.allSettled(this.delayInit);
+		pending.push(...(await util.settle(this.delayInit, deadline)));
+
+		// Anything still in flight will now land on an already initialized slideshow
+		if (pending.length) {
+			let ids = Object.entries(plugins.loaded)
+				.filter(([id, plugin]) => pending.includes(plugin.loaded))
+				.map(([id]) => id);
+			let other = pending.length - ids.length;
+			let what = [
+				ids.length && `plugins: ${ids.join(", ")}`,
+				other && `${other} delayInit promise${other > 1 ? "s" : ""}`,
+			].filter(Boolean);
+
+			console.warn(
+				`Initializing after ${this.initTimeout}ms without waiting for ${what.join(" and ")}.`,
+				"They may change the DOM after initialization.",
+			);
+		}
+
 		this.init();
 	},
 

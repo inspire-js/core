@@ -15,8 +15,6 @@ export const registry = {
 
 export let loaded = {};
 
-export const TIMEOUT = 4000;
-
 // Load a single plugin by id. `def` defaults to its registry entry.
 // Plugin files (plugin.js / plugin.css) are resolved against `def.base`.
 export function load (id, def = registry[id]) {
@@ -29,13 +27,15 @@ export function load (id, def = registry[id]) {
 	let noCSS = document.querySelector(`.no-css-${id}, .no-${id}-css, .${id}-no-css`);
 
 	let plugin = (loaded[id] = {});
-	plugin.loading = pluginURL;
 	plugin.loadedJS = import(pluginURL).then(module => (plugin.module = module));
+	// Resolves to the JS module, but only after CSS has also loaded
 	plugin.loaded = plugin.loadedJS.then(module => {
 		if (!noCSS && module.hasCSS) {
 			let pluginCSS = new URL(`${id}/plugin.css`, base);
-			plugin.loading = pluginCSS;
-			let link = util.create.in(document.head, `<link rel="stylesheet" href="${pluginCSS}" id="plugin-css-${id}">`);
+			let link = util.create.in(
+				document.head,
+				`<link rel="stylesheet" href="${pluginCSS}" id="plugin-css-${id}">`,
+			);
 			return new Promise((res, rej) => {
 				link.onload = e => res(module);
 				link.onerror = rej;
@@ -44,12 +44,7 @@ export function load (id, def = registry[id]) {
 
 		return module;
 	});
-	// Resolves to the JS module, but only after CSS has also loaded
-	plugin.loaded = util.defer(plugin.loaded);
 	plugin.module = plugin.loaded;
-	plugin.done = plugin.loaded.finally(_ => {
-		plugin.loading = "";
-	});
 
 	return plugin;
 }
@@ -69,7 +64,6 @@ export function loadAll (plugins = registry) {
 		if (doLoad && !dontLoad) {
 			let plugin = load(id, typeof def === "string" ? { test: def } : def);
 			plugin.loaded.catch(e => console.error(`Plugin ${id} error:`, e));
-			setTimeout(_ => plugin.loaded.reject("Timed out"), TIMEOUT);
 			ret.push(plugin.loaded);
 		}
 	}

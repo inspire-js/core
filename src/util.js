@@ -25,6 +25,25 @@ export function timeout (ms, { reject, value } = {}) {
 
 export const wait = timeout;
 
+/**
+ * Wait until every promise settles, or until `deadline` resolves, whichever comes first.
+ * @param {Promise[]} promises
+ * @param {Promise} deadline
+ * @returns {Promise<Promise[]>} The promises still pending when the wait ended
+ */
+export async function settle (promises, deadline) {
+	let pending = new Set(promises);
+
+	for (let promise of promises) {
+		let done = () => pending.delete(promise);
+		Promise.resolve(promise).then(done, done);
+	}
+
+	await Promise.race([Promise.allSettled(promises), deadline]);
+
+	return [...pending];
+}
+
 // Get attribute value, from the first element it's defined on
 // Useful for things like global settings where we don't care where the attribute is on
 export function getAttribute (attribute) {
