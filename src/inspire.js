@@ -214,6 +214,37 @@ let _ = {
 
 		addEventListener("hashchange", _.hashchange);
 
+		// Find-in-page matched text in a slide that is not on screen: switch to it.
+		// beforematch fires once per hidden="until-found" ancestor of the match,
+		// innermost first: anything the deck marked up itself, then the slide. So the
+		// first one is the closest we get to knowing where in the slide the match is.
+		let match;
+
+		document.addEventListener("beforematch", evt => {
+			if (match) {
+				// Same match, further out
+				return;
+			}
+
+			match = evt.target;
+			let slide = _.getSlide(match);
+
+			// The browser is midway through revealing: it still has to drop the
+			// attribute and scroll to the match. Switching slides under it would
+			// change the layout it is working on, so wait until it is done.
+			requestAnimationFrame(() => {
+				if (slide) {
+					_.goto(slide);
+
+					// Only the slide itself fired it, so the match could be anywhere
+					// in it: run every step, and it is visible wherever it is
+					_.gotoItem(match === slide ? Infinity : items.stepOf(match));
+				}
+
+				match = null;
+			});
+		});
+
 		_.hooks.run("init-before-first-goto", this);
 
 		// If there"s already a hash, update current slide number
@@ -424,6 +455,19 @@ let _ = {
 
 			// Leaving a slide rewinds it, so nothing it switched on leaks out
 			items.rewind();
+
+			// hidden="until-found" is what lets find-in-page search slides that are
+			// not on screen (see the beforematch listener in init()). The browser
+			// removes it from the slide it reveals, so we put it back here.
+			// Only where it is supported: elsewhere `hidden` is a boolean, so it
+			// would hide every slide, including the one we are switching to.
+			if ("onbeforematch" in HTMLElement.prototype) {
+				for (let s of _.slides) {
+					if (!s.hasAttribute("hidden")) {
+						s.setAttribute("hidden", "until-found");
+					}
+				}
+			}
 
 			let env = { slide, prevSlide, firstTime, which, context: this };
 			_.hooks.run("slidechange", env);

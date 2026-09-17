@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Browser search (find-in-page) now searches the whole deck, not just the slide on screen, and jumps to the slide it matched, forwarding to the step that reveals the match. `beforematch` only tells us about elements that carry `hidden="until-found"`, so that is exact when the deck marks up its own, and otherwise runs all of the slide's steps so the match is visible wherever it is. Slides carry `hidden="until-found"` and are hidden with `content-visibility` instead of `display: none`, so [browsers that support it](https://caniuse.com/mdn-html_global_attributes_hidden_until-found) can look inside them. Everywhere else slides are simply not searchable, as before.
+
+### Changed
+
+- `.previous` and `.next` slides are no longer rendered-but-invisible (`visibility: hidden`); like every other slide that is not on screen, their contents are skipped with `content-visibility`. Deck CSS that shows them anyway needs `content-visibility: visible; clip-path: none; pointer-events: auto` (see [plugins#12](https://github.com/inspire-js/plugins/pull/12), which does this for the presenter view's next-slide preview).
+
 ## 3.1.0
 
 Steps are now data rather than DOM state: one `delayed:` grammar, one item model, one navigation path ([#4](https://github.com/inspire-js/core/pull/4), [#5](https://github.com/inspire-js/core/pull/5)).
