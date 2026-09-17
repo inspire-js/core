@@ -5,6 +5,8 @@
 ### Added
 
 - Browser search (find-in-page) now searches the whole deck, not just the slide on screen, and jumps to the slide it matched, forwarding to the step that reveals the match. `beforematch` only tells us about elements that carry `hidden="until-found"`, so that is exact when the deck marks up its own, and otherwise runs all of the slide's steps so the match is visible wherever it is. Slides carry `hidden="until-found"` and are hidden with `content-visibility` instead of `display: none`, so [browsers that support it](https://caniuse.com/mdn-html_global_attributes_hidden_until-found) can look inside them. Everywhere else slides are simply not searchable, as before.
+- A registry entry's `base` can now be the plugin's module itself, not only a collection it lives in. A `base` ending in `/` keeps resolving as `<base>/<id>/plugin.js`.
+- `data-load-plugins` entries can say where a plugin lives: `data-load-plugins="markdown: @inspirejs/markdown"`. Comma-separated; source-less entries are unchanged.
 
 ### Changed
 

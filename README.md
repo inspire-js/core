@@ -161,6 +161,33 @@ Each item has `element`, `index`, `step`, `state` (`future`, `current` or `past`
 
 ## API FAQ
 
+### Pointing a plugin at a different module
+
+Every registry entry carries a `base`. A `base` ending in `/` is a collection the plugin
+lives in, resolved as `<base>/<id>/plugin.js`; anything else is the plugin's own module.
+
+To load a plugin from somewhere else, or add one of your own, name it in the deck's HTML:
+
+```html
+<body data-load-plugins="markdown: @inspirejs/markdown, mine: ./plugins/mine.js">
+```
+
+Naming a plugin loads it whether or not its selector matches. Bare specifiers resolve
+through the page's import map, everything else against the document. Entries without a
+source keep working as before, and may still list several ids: `data-load-plugins="a b"`.
+
+HTML is parsed before any module runs, so this works whatever your import graph looks like
+— unlike configuring the registry from JS, which races the core's startup.
+
+To add a plugin after Inspire has loaded, use `Inspire.plugins.register()`:
+
+```js
+Inspire.plugins.register({ mine: { test: "[data-mine]", base: import.meta.resolve("my-plugin") } });
+
+// or a collection, sharing a base
+Inspire.plugins.register({ mine: "[data-mine]" }, new URL("./plugins/", import.meta.url));
+```
+
 ### Running code after any imports have loaded
 
 ```js
