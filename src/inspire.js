@@ -83,7 +83,7 @@ let _ = {
 			let other = pending.length - ids.length;
 			let what = [
 				ids.length && `plugins: ${ids.join(", ")}`,
-				other && `${other} delayInit promise${other > 1 ? "s" : ""}`,
+				other && `${other} pending promise${other > 1 ? "s" : ""}`,
 			].filter(Boolean);
 
 			console.warn(
