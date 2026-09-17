@@ -53,7 +53,17 @@ body {
 		   would hide them from find-in-page, which is the whole point.
 		*/
 		&:not(:target, .show-all *, [hidden]) {
-			display: none;
+			/* The slide before and after this one stay in the layout, hidden:
+			   that is what the next-slide preview of the presenter view shows
+			*/
+			&:where(.previous, .next) {
+				visibility: hidden;
+				overflow: hidden;
+			}
+
+			&:not(.previous, .next) {
+				display: none;
+			}
 		}
 
 		&:is(:target, .show-all *) {
