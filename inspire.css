@@ -35,24 +35,40 @@ body {
 	transition-property: var(--transition-properties);
 	contain: strict;
 
-	/* So that people can override and do things like
-	   .slide { display: flex; }
-	   without having to specify :not(:target) all the bloody time
+	/* Every slide carries hidden="until-found" (Inspire sets it, where the browser
+	   supports it), so that find-in-page can search the whole deck and not just the
+	   slide on screen. Which slides actually render is decided here.
 	*/
 	@media screen {
-		&:not(.show-all *):not(.previous):not(:target):not(.next) {
-			display: none !important;
+		&:not(:target, .show-all *) {
+			/* The attribute skips the contents, but the slide's own box would
+			   still paint and catch clicks
+			*/
+			clip-path: rect(0 0 0 0);
+			pointer-events: none;
 		}
-	}
 
-	&.previous,
-	&.next {
-		visibility: hidden;
-		overflow: hidden;
-	}
+		/* No attribute means the browser does not support it, so nothing is
+		   skipping the contents. Using content-visibility: hidden here instead
+		   would hide them from find-in-page, which is the whole point.
+		*/
+		&:not(:target, .show-all *, [hidden]) {
+			/* The slide before and after this one stay in the layout, hidden:
+			   that is what the next-slide preview of the presenter view shows
+			*/
+			&:where(.previous, .next) {
+				visibility: hidden;
+				overflow: hidden;
+			}
 
-	&:is(.show-all *) {
-		visibility: visible;
+			&:not(.previous, .next) {
+				display: none;
+			}
+		}
+
+		&:is(:target, .show-all *) {
+			content-visibility: visible;
+		}
 	}
 
 	&:target {
@@ -204,6 +220,7 @@ body {
 	}
 
 	.slide.slide {
+		content-visibility: visible;
 		position: relative;
 		transform: scale(1); /* for any internal position: fixed elements */
 		width: 100vw;

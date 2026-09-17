@@ -329,6 +329,17 @@ export function goto (step, max = count) {
 	return which;
 }
 
+/**
+ * The step at which an element of the tracked slide has been revealed
+ * @param {Element} element
+ * @returns {number} The last step that reveals it; 0 if no item contains it
+ */
+export function stepOf (element) {
+	let steps = all.filter(item => item.element.contains(element)).map(item => item.step);
+
+	return steps.length ? Math.max(...steps) : 0;
+}
+
 /** Re-collect after a DOM change and re-apply the current step */
 export function refresh () {
 	if (slide) {
