@@ -31,7 +31,7 @@ let _ = {
 	// How long setup() waits for plugins and delayInit before initializing anyway.
 	// A plugin's remote dependency can stall indefinitely rather than fail, and a
 	// slideshow that never starts is worse than one missing a plugin.
-	initTimeout: 10_000,
+	initTimeout: 4_000,
 
 	// Elements to ignore (works with nesting too)
 	// This works better than commenting, which cannot be
