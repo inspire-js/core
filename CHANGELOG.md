@@ -8,7 +8,7 @@
 
 ### Changed
 
-- `.previous` and `.next` slides are no longer rendered-but-invisible (`visibility: hidden`); like every other slide that is not on screen, their contents are skipped with `content-visibility`. Deck CSS that shows them anyway needs `content-visibility: visible; clip-path: none; pointer-events: auto` (see [plugins#12](https://github.com/inspire-js/plugins/pull/12), which does this for the presenter view's next-slide preview).
+- `.previous` and `.next` slides are treated like every other slide that is not on screen: their contents are skipped with `content-visibility` where the slide carries `hidden="until-found"`, and they stay rendered-but-invisible (`visibility: hidden`) where it is missing, so that decks in browsers without support keep showing them. Deck CSS that shows them anyway needs `content-visibility: visible; clip-path: none; pointer-events: auto; visibility: visible` (see [plugins#12](https://github.com/inspire-js/plugins/pull/12), which does this for the presenter view's next-slide preview).
 
 ## 3.1.0
 

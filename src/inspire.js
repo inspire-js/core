@@ -226,6 +226,12 @@ let _ = {
 				return;
 			}
 
+			if (evt.target.matches(".slide") && location.hash === "#" + evt.target.id) {
+				// Not a search: navigating to a slide reveals it the same way, and
+				// hashchange is already taking us there, with the step it was given
+				return;
+			}
+
 			match = evt.target;
 			let slide = _.getSlide(match);
 
